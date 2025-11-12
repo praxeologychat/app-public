@@ -6,26 +6,20 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-// allow your WordPress domains to embed this
-const FRAME_ANCESTORS = [
-  "https://praxeologychat.wpcomstaging.com",
-  "https://praxeologychat.wordpress.com"
-].join(" ");
-
+// allow embedding in WordPress and remove strict CSP
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    `default-src 'self' blob: data: https:; frame-ancestors 'self' ${FRAME_ANCESTORS}`
+    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
   );
-  res.removeHeader("X-Frame-Options");
+  res.setHeader("X-Frame-Options", "ALLOWALL");
   next();
 });
 
 // serve static files
 app.use(
   express.static(path.join(__dirname, "public"), {
-    setHeaders: (res) =>
-      res.setHeader("Cache-Control", "public, max-age=600"),
+    setHeaders: (res) => res.setHeader("Cache-Control", "public, max-age=600"),
   })
 );
 
