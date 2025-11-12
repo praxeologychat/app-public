@@ -1,6 +1,9 @@
 import express from "express";
 import fetch from "node-fetch";
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // allow your WordPress domains to embed this
@@ -18,21 +21,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// serve your static files (the exported AI Studio app) from /public
-app.use(express.static("public", {
-  setHeaders: (res) => res.setHeader("Cache-Control", "public, max-age=600")
-}));
+// serve static files
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res) =>
+      res.setHeader("Cache-Control", "public, max-age=600"),
+  })
+);
 
-// secure Gemini proxy route (keeps API key private)
+// proxy to Gemini
 app.use(express.json());
 app.post("/api/chat", async (req, res) => {
   try {
     const r = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + process.env.GEMINI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
+        process.env.GEMINI_API_KEY,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify(req.body),
       }
     );
     const j = await r.json();
@@ -43,16 +50,14 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// serve your app's main HTML for any other route
-app.get("*", (_req, res) => res.sendFile(process.cwd() + "/public/index.html"));
+// fallback route
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // run
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log("Public app listening on " + port));
-
-
-app.get("*", (_req, res) => res.sendFile(process.cwd() + "/public/index.html"));
-
-const port = process.env.PORT || 8080;
-app.listen(port, () => console.log("Public app listening on " + port));
+app.listen(port, "0.0.0.0", () =>
+  console.log("✅ Public app listening on port " + port)
+);
 
